@@ -1,4 +1,4 @@
-name: build-test-release
+name: OmniVersion Hybrid Build
 
 on:
   push:
@@ -37,9 +37,9 @@ jobs:
 
       - name: Run Tests
         run: |
-          php -l src/Translator.php
-          php -l src/PacketMapper.php
-          php -l src/VersionTable.php
+          php -l src/OmniVersion/protocol/Translator.php
+          php -l src/OmniVersion/protocol/PacketMapper.php
+          php -l src/OmniVersion/protocol/VersionTable.php
           php -l src/Main.php
 
       - name: Build Plugin PHAR
