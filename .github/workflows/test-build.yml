@@ -9,6 +9,7 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
+
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -23,35 +24,24 @@ jobs:
       - name: Verify PHP version
         run: php -v
 
+      # Composer by GitHub Action (anti-error)
+      - name: Install Composer Dependencies
+        uses: php-actions/composer@v6
+        with:
+          php_version: "8.1"
+          dev: no
+
       - name: Download PocketMine-MP
         run: |
           mkdir -p pmmp
           wget https://github.com/pmmp/PocketMine-MP/releases/latest/download/PocketMine-MP.phar -O pmmp/PocketMine-MP.phar
 
-      - name: Install Composer
-        run: |
-          EXPECTED_SIGNATURE=$(wget -q -O - https://composer.github.io/installer.sig)
-          php -r "copy('https://getcomposer.org/installer', 'composer-setup.php');"
-          ACTUAL_SIGNATURE=$(php -r "echo hash_file('sha384', 'composer-setup.php');")
-
-          if [ "$EXPECTED_SIGNATURE" != "$ACTUAL_SIGNATURE" ]; then
-            echo "ERROR: Invalid Composer installer signature"
-            exit 1
-          fi
-
-          php composer-setup.php --quiet
-          rm composer-setup.php
-          mv composer.phar /usr/local/bin/composer
-
-      - name: Composer install
-        run: composer install --no-dev
-
-      - name: Build plugin PHAR
+      - name: Build Plugin PHAR
         run: |
           php build/build.php
           mv OmniVersion.phar build/OmniVersion.phar
 
-      - name: Upload PHAR artifact
+      - name: Upload Artifact
         uses: actions/upload-artifact@v4
         with:
           name: OmniVersion-Build
