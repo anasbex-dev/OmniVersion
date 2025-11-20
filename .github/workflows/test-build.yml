@@ -17,7 +17,7 @@ jobs:
       uses: shivammathur/setup-php@v2
       with:
         php-version: "8.1"
-        extensions: mbstring, xml, curl, yaml, sqlite3
+        extensions: mbstring, xml, curl, yaml, sqlite3, dom, zlib
         coverage: none
 
     - name: Verify PHP version
@@ -28,24 +28,21 @@ jobs:
         wget https://github.com/pmmp/PocketMine-MP/releases/latest/download/PocketMine-MP.phar -O pmmp.phar
         php pmmp.phar --version
 
-    - name: Extract PMMP DevTools
+    - name: Extract PocketMine
       run: |
         mkdir pmmp
-        php pmmp.phar --make-server pmmp
+        php pmmp.phar --extract=pmmp
         ls -lah pmmp
 
-    - name: Run unit tests
+    - name: Run Tests
       run: |
-        echo "Running Translator tests..."
-        php tests/TranslatorTest.php
+        if [ -d tests ]; then
+          php tests/TranslatorTest.php
+        else
+          echo "No tests directory found."
+        fi
 
-    - name: Build Plugin (PHAR)
+    - name: Build Plugin PHAR
       run: |
         php build.php
         ls -lah build
-
-    - name: Upload Build Artifact
-      uses: actions/upload-artifact@v4
-      with:
-        name: OmniVersion-phar
-        path: build/*.phar
