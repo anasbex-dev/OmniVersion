@@ -1,9 +1,8 @@
-name: OmniVersion Hybrid Build
+name: build-test-release
 
 on:
   push:
     branches: ["main"]
-  pull_request:
 
 jobs:
   build-test-release:
@@ -22,46 +21,27 @@ jobs:
       - name: Verify PHP version
         run: php -v
 
-      # ===============================================
-      # DOWNLOAD POCKETMINE (STABLE)
-      # ===============================================
       - name: Download PocketMine-MP Stable
         run: |
           wget -O pmmp.phar "https://update.pmmp.io/api?channel=stable"
           ls -lah
           file pmmp.phar
 
-      # ===============================================
-      # AUTO VERSIONING
-      # ===============================================
       - name: Generate Plugin Version
         id: setver
         run: |
           DATE=$(date +"%Y.%m.%d.%H%M")
           echo "version=$DATE" >> $GITHUB_OUTPUT
+          sed -i "s/version: .*/version: $DATE/" plugin.yml
           echo "Generated version: $DATE"
 
-          # Update plugin.yml
-          sed -i "s/version: .*/version: $DATE/" plugin.yml
-
-      # ===============================================
-      # RUN UNIT TESTS
-      # ===============================================
       - name: Run Tests
         run: |
-          if [ -d "tests" ]; then
-            echo "Running tests..."
-            php -l src/Translator.php
-            php -l src/PacketMapper.php
-            php -l src/VersionTable.php
-            php -l src/Main.php
-          else
-            echo "No tests folder found. Skipping..."
-          fi
+          php -l src/Translator.php
+          php -l src/PacketMapper.php
+          php -l src/VersionTable.php
+          php -l src/Main.php
 
-      # ===============================================
-      # BUILD PLUGIN PHAR
-      # ===============================================
       - name: Build Plugin PHAR
         run: |
           mkdir -p build
@@ -70,12 +50,26 @@ jobs:
       - name: List Build Output
         run: ls -lah build
 
-      # ===============================================
-      # AUTO RELEASE
-      # ===============================================
+      # ==================================================
+      # CREATE GIT TAG OTOMATIS
+      # ==================================================
+      - name: Create Git Tag
+        if: github.ref == 'refs/heads/main'
+        run: |
+          git config user.name "${{ github.actor }}"
+          git config user.email "${{ github.actor }}@users.noreply.github.com"
+
+          TAG="v${{ steps.setver.outputs.version }}"
+          git tag $TAG
+          git push origin $TAG
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      # ==================================================
+      # CREATE GITHUB RELEASE
+      # ==================================================
       - name: Create Release
         uses: softprops/action-gh-release@v2
-        if: github.ref == 'refs/heads/main'
         with:
           tag_name: v${{ steps.setver.outputs.version }}
           name: "OmniVersion v${{ steps.setver.outputs.version }}"
