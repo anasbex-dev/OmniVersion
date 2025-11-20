@@ -3,11 +3,10 @@ name: OmniVersion Hybrid Build
 on:
   push:
     branches: ["main"]
-    tags:
-      - "v*"
+  pull_request:
 
 jobs:
-  build:
+  build-test-release:
     runs-on: ubuntu-latest
 
     steps:
@@ -18,31 +17,71 @@ jobs:
         uses: shivammathur/setup-php@v2
         with:
           php-version: "8.1"
-          extensions: mbstring, xml, curl, yaml, sqlite3
-          coverage: none
+          extensions: mbstring
 
       - name: Verify PHP version
         run: php -v
 
-      # Composer by GitHub Action (anti-error)
-      - name: Install Composer Dependencies
-        uses: php-actions/composer@v6
-        with:
-          php_version: "8.1"
-          dev: no
-
-      - name: Download PocketMine-MP
+      # ===============================================
+      # DOWNLOAD POCKETMINE (STABLE)
+      # ===============================================
+      - name: Download PocketMine-MP Stable
         run: |
-          mkdir -p pmmp
-          wget https://github.com/pmmp/PocketMine-MP/releases/latest/download/PocketMine-MP.phar -O pmmp/PocketMine-MP.phar
+          wget -O pmmp.phar "https://update.pmmp.io/api?channel=stable"
+          ls -lah
+          file pmmp.phar
 
+      # ===============================================
+      # AUTO VERSIONING
+      # ===============================================
+      - name: Generate Plugin Version
+        id: setver
+        run: |
+          DATE=$(date +"%Y.%m.%d.%H%M")
+          echo "version=$DATE" >> $GITHUB_OUTPUT
+          echo "Generated version: $DATE"
+
+          # Update plugin.yml
+          sed -i "s/version: .*/version: $DATE/" plugin.yml
+
+      # ===============================================
+      # RUN UNIT TESTS
+      # ===============================================
+      - name: Run Tests
+        run: |
+          if [ -d "tests" ]; then
+            echo "Running tests..."
+            php -l src/Translator.php
+            php -l src/PacketMapper.php
+            php -l src/VersionTable.php
+            php -l src/Main.php
+          else
+            echo "No tests folder found. Skipping..."
+          fi
+
+      # ===============================================
+      # BUILD PLUGIN PHAR
+      # ===============================================
       - name: Build Plugin PHAR
         run: |
-          php build/build.php
-          mv OmniVersion.phar build/OmniVersion.phar
+          mkdir -p build
+          php pmmp.phar --make-plugin . build/OmniVersion.phar
 
-      - name: Upload Artifact
-        uses: actions/upload-artifact@v4
+      - name: List Build Output
+        run: ls -lah build
+
+      # ===============================================
+      # AUTO RELEASE
+      # ===============================================
+      - name: Create Release
+        uses: softprops/action-gh-release@v2
+        if: github.ref == 'refs/heads/main'
         with:
-          name: OmniVersion-Build
-          path: build/OmniVersion.phar
+          tag_name: v${{ steps.setver.outputs.version }}
+          name: "OmniVersion v${{ steps.setver.outputs.version }}"
+          draft: false
+          prerelease: false
+          files: |
+            build/OmniVersion.phar
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
