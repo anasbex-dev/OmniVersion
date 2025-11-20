@@ -25,8 +25,7 @@ jobs:
 
     - name: Download PocketMine-MP
       run: |
-        wget https://github.com/pmmp/PocketMine-MP/releases/latest/download/PocketMine-MP.phar -O pmmp.phar
-        php pmmp.phar --version
+        wget https://jenkins.pmmp.io/job/PocketMine-MP/lastStableBuild/artifact/PocketMine-MP.phar -O pmmp.phar --version
 
     - name: Extract PocketMine
       run: |
