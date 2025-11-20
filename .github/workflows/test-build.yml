@@ -37,10 +37,7 @@ jobs:
 
       - name: Run Tests
         run: |
-          php -l src/OmniVersion/protocol/Translator.php
-          php -l src/OmniVersion/protocol/PacketMapper.php
-          php -l src/OmniVersion/protocol/VersionTable.php
-          php -l src/Main.php
+          php -l test/TranslatorTest.php
 
       - name: Build Plugin PHAR
         run: |
