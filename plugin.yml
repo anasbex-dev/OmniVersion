@@ -1,0 +1,6 @@
+name: OmniVersion
+version: 1.0.0
+main: OmniVersion\Main
+api: 5.0.0
+author: AnasBex
+description: Multi-version protocol translation plugin for PMMP.

@@ -1,0 +1,4 @@
+# config.yml - OmniVersion
+debug: true        # true = aktifkan debug packet & translator logs
+log_packets: false # true = log semua packet names (verbose)
+auto_update_version: true # kalau mau biarkan build script auto bump (info)
