@@ -1,0 +1,51 @@
+name: OmniVersion Build & Test
+
+on:
+  push:
+    branches: ["main"]
+  pull_request:
+
+jobs:
+  build-test:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+
+    - name: Setup PHP
+      uses: shivammathur/setup-php@v2
+      with:
+        php-version: "8.1"
+        extensions: mbstring, xml, curl, yaml, sqlite3
+        coverage: none
+
+    - name: Verify PHP version
+      run: php -v
+
+    - name: Download PocketMine-MP
+      run: |
+        wget https://github.com/pmmp/PocketMine-MP/releases/latest/download/PocketMine-MP.phar -O pmmp.phar
+        php pmmp.phar --version
+
+    - name: Extract PMMP DevTools
+      run: |
+        mkdir pmmp
+        php pmmp.phar --make-server pmmp
+        ls -lah pmmp
+
+    - name: Run unit tests
+      run: |
+        echo "Running Translator tests..."
+        php tests/TranslatorTest.php
+
+    - name: Build Plugin (PHAR)
+      run: |
+        php build.php
+        ls -lah build
+
+    - name: Upload Build Artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: OmniVersion-phar
+        path: build/*.phar
