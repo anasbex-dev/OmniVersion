@@ -1,71 +1,112 @@
-name: OmniVersion Build & Test
+name: OmniVersion Hybrid Build
 
 on:
   push:
     branches: ["main"]
-  pull_request:
+    tags:
+      - "v*"
 
 jobs:
-  build-test-release:
+  build:
     runs-on: ubuntu-latest
 
     steps:
+      # Checkout
       - name: Checkout repository
-        uses: actions/checkout@v4
+      uses: actions/checkout@v4
 
+      # Setup PHP
       - name: Setup PHP
-        uses: shivammathur/setup-php@v2
-        with:
-          php-version: "8.1"
-          extensions: mbstring
+      uses: shivammathur/setup-php@v2
+      with:
+        php-version: "8.1"
+        extensions: mbstring, xml, curl, yaml, sqlite3
+        coverage: none
 
       - name: Verify PHP version
         run: php -v
 
-      # ===============================================
-      # DOWNLOAD POCKETMINE (STABLE)
-      # ===============================================
-      - name: Download PocketMine-MP Stable
+      # Download PocketMine-MP Stable
+      - name: Download PocketMine-MP
         run: |
-          wget -O pmmp.phar "https://update.pmmp.io/api?channel=stable"
-          ls -lah
-          file pmmp.phar
+          wget https://github.com/pmmp/PocketMine-MP/releases/latest/download/PocketMine-MP.phar -O pmmp.phar
 
-      # ===============================================
-      # AUTO VERSIONING
-      # ===============================================
+      # Auto-generate plugin version (Git Describe)
       - name: Generate Plugin Version
-        id: setver
+        id: genver
         run: |
-          DATE=$(date +"%Y.%m.%d.%H%M")
-          echo "version=$DATE" >> $GITHUB_OUTPUT
-          echo "Generated version: $DATE"
-
-          # Update plugin.yml
-          sed -i "s/version: .*/version: $DATE/" plugin.yml
-
-      # ===============================================
-      # RUN UNIT TESTS
-      # ===============================================
-      - name: Run Tests
-        run: |
-          if [ -d "tests" ]; then
-            echo "Running tests..."
-            php -l src/Translator.php
-            php -l src/PacketMapper.php
-            php -l src/VersionTable.php
-            php -l src/Main.php
+          if git describe --tags --exact-match >/dev/null 2>&1; then
+            VERSION=$(git describe --tags)
           else
-            echo "No tests folder found. Skipping..."
+            VERSION="nightly-$(date +%Y%m%d-%H%M%S)"
           fi
+          echo "VERSION=$VERSION" >> $GITHUB_ENV
 
-      # ===============================================
-      # BUILD PLUGIN PHAR
-      # ===============================================
-      - name: Build Plugin PHAR
+      # Tests
+      - name: Run Tests
+        run: php pmmp.phar --version
+
+      # Build Plugin PHAR
+      - name: Build Plugin
         run: |
           mkdir -p build
-          php pmmp.phar --make-plugin . build/OmniVersion.phar
+          php pmmp.phar --makeplugin . --out "build/OmniVersion-$VERSION.phar"
 
+      # List output
       - name: List Build Output
-        run: ls -lah build
+        run: ls -al build
+
+      # Upload as GitHub Artifact (for debugging)
+      - name: Upload Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: OmniVersion-$VERSION
+          path: build/*.phar
+
+  # Auto Release (Hybrid)
+  release:
+    needs: build
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Download Built PHAR
+        uses: actions/download-artifact@v4
+        with:
+          path: release
+
+      # Check if this is a tag or branch build
+      - name: Detect Release Type
+        id: detect
+        run: |
+          if [[ "$GITHUB_REF" == refs/tags/* ]]; then
+            echo "STABLE=true" >> $GITHUB_ENV
+          else
+            echo "STABLE=false" >> $GITHUB_ENV
+          fi
+
+      # Publish STABLE release (trigger: tag vX.X.X)
+      - name: Publish Stable Release
+        if: env.STABLE == 'true'
+        uses: softprops/action-gh-release@v2
+        with:
+          files: release/**/*
+          tag_name: ${{ github.ref_name }}
+          name: "OmniVersion ${{ github.ref_name }}"
+          draft: false
+          prerelease: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      # Publish NIGHTLY release (trigger: branch main push)
+      - name: Publish Nightly Release
+        if: env.STABLE == 'false'
+        uses: softprops/action-gh-release@v2
+        with:
+          files: release/**/*
+          tag_name: "nightly"
+          name: "OmniVersion Nightly"
+          prerelease: true
+          draft: false
+          make_latest: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
