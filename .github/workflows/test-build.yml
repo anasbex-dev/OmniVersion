@@ -6,42 +6,66 @@ on:
   pull_request:
 
 jobs:
-  build-test:
+  build-test-release:
     runs-on: ubuntu-latest
 
     steps:
-    - name: Checkout repository
-      uses: actions/checkout@v4
+      - name: Checkout repository
+        uses: actions/checkout@v4
 
-    - name: Setup PHP
-      uses: shivammathur/setup-php@v2
-      with:
-        php-version: "8.1"
-        extensions: mbstring, xml, curl, yaml, sqlite3, dom, zlib
-        coverage: none
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: "8.1"
+          extensions: mbstring
 
-    - name: Verify PHP version
-      run: php -v
+      - name: Verify PHP version
+        run: php -v
 
-    - name: Download PocketMine-MP
-      run: |
-        wget https://jenkins.pmmp.io/job/PocketMine-MP/lastStableBuild/artifact/PocketMine-MP.phar -O pmmp.phar --version
+      # ===============================================
+      # DOWNLOAD POCKETMINE (STABLE)
+      # ===============================================
+      - name: Download PocketMine-MP Stable
+        run: |
+          wget -O pmmp.phar "https://update.pmmp.io/api?channel=stable"
+          ls -lah
+          file pmmp.phar
 
-    - name: Extract PocketMine
-      run: |
-        mkdir pmmp
-        php pmmp.phar --extract=pmmp
-        ls -lah pmmp
+      # ===============================================
+      # AUTO VERSIONING
+      # ===============================================
+      - name: Generate Plugin Version
+        id: setver
+        run: |
+          DATE=$(date +"%Y.%m.%d.%H%M")
+          echo "version=$DATE" >> $GITHUB_OUTPUT
+          echo "Generated version: $DATE"
 
-    - name: Run Tests
-      run: |
-        if [ -d tests ]; then
-          php tests/TranslatorTest.php
-        else
-          echo "No tests directory found."
-        fi
+          # Update plugin.yml
+          sed -i "s/version: .*/version: $DATE/" plugin.yml
 
-    - name: Build Plugin PHAR
-      run: |
-        php build.php
-        ls -lah build
+      # ===============================================
+      # RUN UNIT TESTS
+      # ===============================================
+      - name: Run Tests
+        run: |
+          if [ -d "tests" ]; then
+            echo "Running tests..."
+            php -l src/Translator.php
+            php -l src/PacketMapper.php
+            php -l src/VersionTable.php
+            php -l src/Main.php
+          else
+            echo "No tests folder found. Skipping..."
+          fi
+
+      # ===============================================
+      # BUILD PLUGIN PHAR
+      # ===============================================
+      - name: Build Plugin PHAR
+        run: |
+          mkdir -p build
+          php pmmp.phar --make-plugin . build/OmniVersion.phar
+
+      - name: List Build Output
+        run: ls -lah build
