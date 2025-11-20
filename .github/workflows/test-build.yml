@@ -9,103 +9,50 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
-
     steps:
       - name: Checkout repository
-      uses: actions/checkout@v4
+        uses: actions/checkout@v4
 
-      # Setup PHP
       - name: Setup PHP
-      uses: shivammathur/setup-php@v2
-      with:
-        php-version: "8.1"
-        extensions: mbstring, xml, curl, yaml, sqlite3
-        coverage: none
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: "8.1"
+          extensions: mbstring, xml, curl, yaml, sqlite3
+          coverage: none
 
       - name: Verify PHP version
         run: php -v
 
-      # Download PocketMine-MP Stable
       - name: Download PocketMine-MP
         run: |
-          wget https://github.com/pmmp/PocketMine-MP/releases/latest/download/PocketMine-MP.phar -O pmmp.phar
+          mkdir -p pmmp
+          wget https://github.com/pmmp/PocketMine-MP/releases/latest/download/PocketMine-MP.phar -O pmmp/PocketMine-MP.phar
 
-      # Auto-generate plugin version (Git Describe)
-      - name: Generate Plugin Version
-        id: genver
+      - name: Install Composer
         run: |
-          if git describe --tags --exact-match >/dev/null 2>&1; then
-            VERSION=$(git describe --tags)
-          else
-            VERSION="nightly-$(date +%Y%m%d-%H%M%S)"
+          EXPECTED_SIGNATURE=$(wget -q -O - https://composer.github.io/installer.sig)
+          php -r "copy('https://getcomposer.org/installer', 'composer-setup.php');"
+          ACTUAL_SIGNATURE=$(php -r "echo hash_file('sha384', 'composer-setup.php');")
+
+          if [ "$EXPECTED_SIGNATURE" != "$ACTUAL_SIGNATURE" ]; then
+            echo "ERROR: Invalid Composer installer signature"
+            exit 1
           fi
-          echo "VERSION=$VERSION" >> $GITHUB_ENV
 
-      # Tests
-      - name: Run Tests
-        run: php pmmp.phar --version
+          php composer-setup.php --quiet
+          rm composer-setup.php
+          mv composer.phar /usr/local/bin/composer
 
-      # Build Plugin PHAR
-      - name: Build Plugin
+      - name: Composer install
+        run: composer install --no-dev
+
+      - name: Build plugin PHAR
         run: |
-          mkdir -p build
-          php pmmp.phar --makeplugin . --out "build/OmniVersion-$VERSION.phar"
+          php build/build.php
+          mv OmniVersion.phar build/OmniVersion.phar
 
-      # List output
-      - name: List Build Output
-        run: ls -al build
-
-      # Upload as GitHub Artifact (for debugging)
-      - name: Upload Artifact
+      - name: Upload PHAR artifact
         uses: actions/upload-artifact@v4
         with:
-          name: OmniVersion-$VERSION
-          path: build/*.phar
-
-  # Auto Release (Hybrid)
-  release:
-    needs: build
-    runs-on: ubuntu-latest
-
-    steps:
-      - name: Download Built PHAR
-        uses: actions/download-artifact@v4
-        with:
-          path: release
-
-      # Check if this is a tag or branch build
-      - name: Detect Release Type
-        id: detect
-        run: |
-          if [[ "$GITHUB_REF" == refs/tags/* ]]; then
-            echo "STABLE=true" >> $GITHUB_ENV
-          else
-            echo "STABLE=false" >> $GITHUB_ENV
-          fi
-
-      # Publish STABLE release (trigger: tag vX.X.X)
-      - name: Publish Stable Release
-        if: env.STABLE == 'true'
-        uses: softprops/action-gh-release@v2
-        with:
-          files: release/**/*
-          tag_name: ${{ github.ref_name }}
-          name: "OmniVersion ${{ github.ref_name }}"
-          draft: false
-          prerelease: false
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-      # Publish NIGHTLY release (trigger: branch main push)
-      - name: Publish Nightly Release
-        if: env.STABLE == 'false'
-        uses: softprops/action-gh-release@v2
-        with:
-          files: release/**/*
-          tag_name: "nightly"
-          name: "OmniVersion Nightly"
-          prerelease: true
-          draft: false
-          make_latest: false
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          name: OmniVersion-Build
+          path: build/OmniVersion.phar
