@@ -2,5 +2,17 @@ name: OmniVersion
 version: 1.0.0
 main: OmniVersion\Main
 api: 5.0.0
+description: Multi-version support for Minecraft Bedrock 1.21.x
 author: AnasBex
-description: Multi-version protocol translation plugin for PMMP.
+website: https://anasbex.vercel.app
+
+permissions:
+  omniversion.admin:
+    description: Access to OmniVersion admin commands
+    default: op
+
+commands:
+  omniversion:
+    description: OmniVersion management commands
+    usage: "/omniversion <reload|status|versions>"
+    permission: omniversion.admin

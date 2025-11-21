@@ -1,55 +1,89 @@
 # 🌐 OmniVersion — Multi-Version Support for PMMP
 
-**OmniVersion** adalah plugin PMMP (PocketMine-MP) yang dirancang untuk menghubungkan berbagai versi Minecraft Bedrock ke satu server.  
-Dengan sistem *protocol translation*, plugin ini membuat pemain dari versi berbeda tetap bisa join tanpa perlu server proxy tambahan.
+![Banner](banner.jpg )
+
+![Logo](logo.png)
+
+**OmniVersion** adalah plugin PMMP (PocketMine-MP) yang memungkinkan berbagai versi Minecraft Bedrock terhubung ke satu server.  
+Dengan sistem *protocol translation*, pemain dari versi berbeda tetap dapat join tanpa server proxy tambahan.
+
+---
 
 ## ✨ Fitur Utama
-- 🔄 **Multi-Version Support** — Pemain dari berbagai versi Bedrock bisa join ke server yang sama.
-- 🔁 **Protocol Translation** — Menerjemahkan paket antar versi agar tetap kompatibel.
-- ⚡ **Tanpa Proxy** — Murni plugin PHP tanpa perlu Nukkit/Bungee/Waterdog.
-- 🛡 **Stabil & Aman** — Menghindari crash akibat perbedaan format paket.
-- 🔌 **Integrasi Mudah** — Cukup letakkan di folder `plugins`.
+- 🔄 **Multi-Version Support** — Pemain dari berbagai versi Bedrock bisa join server yang sama.
+- 🔁 **Protocol Translation** — Menerjemahkan paket lintas versi agar tetap kompatibel.
+- ⚡ **Tanpa Proxy** — Plugin PHP murni, tidak membutuhkan Waterdog/Nukkit/Bungee.
+- 🛡 **Stabil & Aman** — Menghindari crash dari perbedaan format paket.
+- 🔌 **Integrasi Mudah** — Cukup drop ke folder `plugins`.
+
+---
 
 ## 🚀 Cara Instalasi
-1. Download file `OmniVersion.phar` (akan tersedia saat rilis).
-2. Masukkan ke folder:
+
+1. Download **OmniVersion.phar** (tersedia saat GitHub Release).
+2. Letakkan ke folder:
 
 /plugins
 
 3. Restart server PocketMine-MP.
-4. OmniVersion aktif otomatis.
-
-## 📁 Struktur Direktori (Developer)
-
-OmniVersion/ ├── src/ │   └── OmniVersion/ │       ├── Main.php │       ├── protocol/ │       │   ├── Translator.php │       │   ├── PacketMapper.php │       │   └── VersionTable.php │       └── utils/ │           └── Logger.php └── plugin.yml
-
-## 🧠 Cara Kerja Singkat
-- Plugin membaca **versi protokol** dari klien.
-- Jika protokol tidak cocok dengan server, OmniVersion:
-  - mencocokkan versi,
-  - menterjemahkan paket masuk/keluar,
-  - memastikan format sesuai versi server.
-- Pemain bisa tetap bermain walau berbeda versi.
-
-## 🛠 Status Proyek
-🚧 **Sedang dalam tahap pengembangan awal**  
-Fokus awal:
-- Pemetaan versi protokol
-- Translator paket dasar
-- Kompatibilitas login dan join server
-
-## 🤝 Kontribusi
-Kontribusi sangat diterima!  
-Silakan buat:
-- Pull request
-- Issue bug
-- Request fitur baru
-
-## 📜 Lisensi
-MIT License — bebas digunakan untuk proyek pribadi maupun komersial.
+4. Plugin aktif otomatis.
 
 ---
 
-### 💬 Dukungan
-Jika ingin request fitur, silakan buka **Issues** di repo ini.  
-Butuh bantuan? Tanyakan saja — OmniVersion akan terus berkembang!
+## 📁 Struktur Direktori (Untuk Developer)
+
+OmniVersion/ ├── src/ │   └── OmniVersion/ │       ├── Main.php │       ├── protocol/ │       │   ├── Translator.php │       │   ├── PacketMapper.php │       │   └── VersionTable.php │       └── utils/ │           └── Logger.php └── plugin.yml
+
+---
+
+## 🧠 Cara Kerja Singkat
+
+1. Plugin membaca **versi protokol** dari klien.
+2. Jika tidak cocok dengan server, OmniVersion akan:
+   - mencocokkan versi,
+   - menerjemahkan paket masuk/keluar,
+   - memastikan format sesuai protokol server.
+3. Pemain tetap bisa join walau beda versi.
+
+---
+
+## 🛠 Status Proyek
+
+🚧 **Dalam tahap pengembangan awal**
+
+Fokus saat ini:
+- Pemetaan tabel versi protokol  
+- Translator paket dasar  
+- Kompatibilitas login & join server  
+
+---
+
+## 🤝 Kontribusi
+
+Kontribusi sangat diterima!
+
+Silakan:
+- Membuat **Pull Request**  
+- Membuka **Issues**  
+- Request fitur baru  
+
+---
+
+## 📜 Lisensi
+
+Proyek ini dirilis di bawah **Apache License 2.0**.
+
+Copyright 2025-present anasbex-dev
+
+Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except in compliance with the License. You may obtain a copy of the License at:
+
+http://www.apache.org/licenses/LICENSE-2.0
+
+---
+
+## 💬 Dukungan
+
+Punya ide fitur atau menemukan bug?  
+Silakan buka **Issues**.
+
+Terima kasih sudah mendukung OmniVersion! 🚀

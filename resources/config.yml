@@ -1,0 +1,34 @@
+# OmniVersion Configuration
+
+# Enable or disable the plugin
+enabled: true
+
+# Action for unsupported versions
+# Options: "kick", "warn", "allow"
+unsupported-version-action: "kick"
+
+# Custom kick message for unsupported versions
+kick-message: "Unsupported client version. Please use supported versions."
+
+# Enable debug mode
+debug: false
+
+# Enable metrics collection
+enable-metrics: true
+
+# Supported versions range
+supported-range:
+  min: "1.21.10"
+  max: "1.21.30"
+
+# Packet translation settings
+packet-translation:
+  enabled: true
+  cache-size: 1000
+  fallback-to-original: true
+
+# Logging settings
+logging:
+  file: "logs/omni_version.log"
+  max-files: 5
+  max-file-size: "10MB"

@@ -1,54 +1,76 @@
 <?php
 
-require __DIR__ . "/../src/OmniVersion/protocol/Translator.php";
-require __DIR__ . "/../src/OmniVersion/protocol/PacketMapper.php";
-require __DIR__ . "/../src/OmniVersion/protocol/VersionTable.php";
+declare(strict_types=1);
 
-use OmniVersion\protocol\Translator;
-use OmniVersion\protocol\VersionTable;
-use pocketmine\network\mcpe\protocol\DataPacket;
+namespace OmniVersion\tests;
 
-/**
- * Dummy packet class untuk test
- */
-class DummyPacket extends DataPacket {
-    public int $value = 0;
+use OmniVersion\Translator;
+use OmniVersion\protocol\PacketMapper;
+use pocketmine\network\mcpe\protocol\TextPacket;
+use PHPUnit\Framework\TestCase;
 
-    public function pid() : int { return 999; }
-
-    protected function decodePayload() : void {}
-    protected function encodePayload() : void {}
+class TranslatorTest extends TestCase {
+    
+    private Translator $translator;
+    private PacketMapper $packetMapper;
+    
+    protected function setUp(): void {
+        $this->packetMapper = new PacketMapper();
+        $this->translator = new Translator($this->packetMapper);
+    }
+    
+    public function testPacketTranslationSameVersion(): void {
+        $packet = new TextPacket();
+        $packet->type = TextPacket::TYPE_RAW;
+        $packet->message = "Test message";
+        
+        $result = $this->translator->translateOutgoing($packet, "1.21.20");
+        
+        $this->assertSame($packet, $result, "Packet should be unchanged for same version");
+    }
+    
+    public function testEntityDataPacketTranslation(): void {
+        // Mock an entity data packet
+        $packet = $this->createMock(\pocketmine\network\mcpe\protocol\SetEntityDataPacket::class);
+        $packet->metadata = [1 => "value1", 100 => "new_field"];
+        
+        $result = $this->translator->translateOutgoing($packet, "1.21.10");
+        
+        $this->assertInstanceOf(\pocketmine\network\mcpe\protocol\SetEntityDataPacket::class, $result);
+    }
+    
+    public function testTranslationCache(): void {
+        $packet = new TextPacket();
+        $packet->type = TextPacket::TYPE_RAW;
+        $packet->message = "Cache test";
+        
+        // First translation
+        $result1 = $this->translator->translateOutgoing($packet, "1.21.10");
+        
+        // Second translation (should use cache)
+        $result2 = $this->translator->translateOutgoing($packet, "1.21.10");
+        
+        $this->assertSame($result1, $result2, "Cached translation should return same object");
+    }
+    
+    public function testClearCache(): void {
+        $packet = new TextPacket();
+        $packet->type = TextPacket::TYPE_RAW;
+        $packet->message = "Cache clear test";
+        
+        $this->translator->translateOutgoing($packet, "1.21.10");
+        
+        // Reflection to access private cache
+        $reflection = new \ReflectionClass($this->translator);
+        $cacheProperty = $reflection->getProperty('translationCache');
+        $cacheProperty->setAccessible(true);
+        
+        $cacheBefore = $cacheProperty->getValue($this->translator);
+        $this->assertNotEmpty($cacheBefore, "Cache should not be empty after translation");
+        
+        $this->translator->clearCache();
+        
+        $cacheAfter = $cacheProperty->getValue($this->translator);
+        $this->assertEmpty($cacheAfter, "Cache should be empty after clear");
+    }
 }
-
-
-echo "=== OmniVersion Unit Test ===\n";
-
-$translator = new Translator();
-
-// ----- Test 1: translateIn basic -----
-$packet = new DummyPacket();
-$packet->value = 10;
-
-$translated = $translator->translateIn($packet, 594);
-
-if ($translated instanceof DummyPacket) {
-    echo "[OK] translateIn() returned correct packet\n";
-} else {
-    echo "[FAIL] translateIn() returned wrong packet type\n";
-}
-
-// ----- Test 2: Version table -----
-if (VersionTable::isSupported(671)) {
-    echo "[OK] Protocol 671 supported\n";
-} else {
-    echo "[FAIL] Protocol 671 not detected\n";
-}
-
-if (VersionTable::getVersionName(649) === "1.20.70") {
-    echo "[OK] VersionTable mapping correct for 649\n";
-} else {
-    echo "[FAIL] VersionTable mapping mismatch\n";
-}
-
-// ----- Test Complete -----
-echo "=== Test selesai ===\n";
